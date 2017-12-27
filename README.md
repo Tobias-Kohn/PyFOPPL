@@ -3,8 +3,7 @@
 This is an implementation of a Anglican/Clojure-based 
 _First Order Probabilistic Programming Language_ (FOPPL) in
 Python.
-
-The design of the language is due to 
+The design of the FOPPL language is due to 
 [Frank Wood](http://www.robots.ox.ac.uk/~fwood/), 
 Jan-Willem van de Meent, and Brooks Paige.
 
@@ -39,14 +38,14 @@ The imported module exposes the following three fields:
 
 ### Overview
 
-The source code is first read into clojure-like datastructures,
+The FOPPL source code is first read into clojure-like datastructures,
 such as forms and symbols. The datastructures can be found in
 the module `foppl_objects` and the reader responsible for the
 transformation in `foppl_reader`.
 
 The parser then transforms the clojure-datastructures into an
 Abstract Syntax Tree (AST). The parser can be found in 
-`foppl_parser` and the AST in `foppl_ast.
+`foppl_parser` and the AST in `foppl_ast`.
 
 Once we have the AST, we can use common tree-walking algorithms.
 The compiler as found in the module `compiler` walks the AST
@@ -66,7 +65,7 @@ directly from inside Python. It basically register a new
 importer in the Python system, which looks for FOPPL-code
 and compiles it, once the FOPPL-code has been found.
 
-### Changing the model-class creation
+### Changing the Model-Class Creation
 
 The model-generator has two major mechanisms for customization.
 
@@ -74,7 +73,7 @@ The model-generator has two major mechanisms for customization.
    to have the class derive from a particular class or interface.
    While `interface_name` specifies the name of the class or
    interface, `interface_source` specifies the module where the
-   interface can be found, or an empty string `'''` if no 
+   interface can be found, or an empty string `''` if no 
    module needs to be imported.
    
    By settings the list `imports`, you can also specify any
@@ -113,9 +112,13 @@ The model-generator has two major mechanisms for customization.
         return x + 34
     ```
     
-### Adding new functions and 'macros'
+### Adding New Functions and 'Macros'
 
-There are two possible places to define new functions or programming
+The short story: in order to add a new function `foo`, add a method
+`visit_call_foo(self, node)` to the compiler (see example below).  
+
+The long story:
+there are two possible places to define new functions or programming
 structures: as part of the *parser*, or as part of the *compiler*.
 
 1. **Parser**: the parser operates on general forms (lists), made up
@@ -177,7 +180,50 @@ structures: as part of the *parser*, or as part of the *compiler*.
    We distinguish between functions and other symbols, since
    functions are treated differently and are not first-class
    objects in FOPPL.
-    
+
+### Example of a Custom Function
+
+Let's say, we want to add a `max`-function to our compiler. In
+order to do so, we add a method `visit_call_max` to the compiler
+class. This method must return a tuple, comprising the graph of
+the node, as well as the Python expression as a string.
+
+In our case, we assume that `max` always has two arguments. Both
+of these arguments must be 'compiled' on their own. Afterwards,
+we merge the graphs of both arguments, and create a new Python
+expression for the result.
+```python
+def visit_call_max(self, node: AstFunctionCall):
+    if len(node.args) == 2:
+        graph_A, expr_A = node.args[0].walk(self)   # compile first arg
+        graph_B, expr_B = node.args[1].walk(self)   # compile second arg
+        graph = graph_A.merge(graph_B)              # merge graphs
+        expr = "max({}, {})".format(expr_A, expr_B) # create expression
+        return graph, expr
+    else:
+        raise SyntaxError("Too many or too few arguments for 'max'")
+```    
+However, we might want to do some optimizations first. If both
+arguments are constant and can be evaluated during compile time, we
+do so. The first step towards this is calling the optimization-step
+on both arguments.
+```python
+def visit_call_max(self, node: AstFunctionCall):
+    if len(node.args) == 2:
+        arg_A = self.optimize(node.args[0])
+        arg_B = self.optimize(node.args[1])
+        if isinstance(arg_A, AstValue) and isinstance(arg_B, AstValue):
+            result = max(arg_A.value, arg_B.value)
+            return Graph.EMPTY, repr(result)
+        # as before...
+        graph_A, expr_A = arg_A.walk(self) 
+        graph_B, expr_B = arg_B.walk(self) 
+        graph = graph_A.merge(graph_B)     
+        expr = "max({}, {})".format(expr_A, expr_B)
+        return graph, expr
+    else:
+        raise SyntaxError("Too many or too few arguments for 'max'")
+```
 
 ## License
 

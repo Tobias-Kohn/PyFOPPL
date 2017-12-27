@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 21. Dec 2017
-# 24. Dec 2017
+# 27. Dec 2017
 #
 from .foppl_ast import *
 from .graphs import *
@@ -49,12 +49,19 @@ class Scope(object):
         return self.prev is None
 
 
+class Condition(object):
+
+    def __init__(self, cond, prev=None):
+        self.cond = cond
+        self.prev = prev
+
 class Compiler(Walker):
 
     def __init__(self):
         self.__symbol_counter = 20000
         self.scope = Scope()
         self.optimizer = Optimizer(self)
+        self.condition = None
 
     def resolve_symbol(self, name: str):
         return self.scope.find(name)
@@ -70,6 +77,19 @@ class Compiler(Walker):
         if self.scope.is_global_scope:
             raise RuntimeError("cannot close global scope/namespace")
         self.scope = self.scope.prev
+
+    def begin_condition(self, cond):
+        self.condition = Condition(cond, self.condition)
+
+    def end_condition(self):
+        if self.condition:
+            self.condition = self.condition.prev
+
+    def current_condition(self):
+        if self.condition:
+            return self.condition.cond
+        else:
+            return None
 
     def optimize(self, node: Node):
         if node and self.optimizer:
@@ -149,12 +169,54 @@ class Compiler(Walker):
         graph, expr = node.item.walk(self)
         return graph, "{}{}".format(node.op, expr)
 
+    def visit_compare(self, node: AstCompare):
+        node = self.optimize(node)
+        l_g, l_e = node.left.walk(self)
+        r_g, r_e = node.right.walk(self)
+        result = "({} {} {})".format(l_e, node.op, r_e)
+        return l_g.merge(r_g), result
+
+    def visit_if(self, node: AstIf):
+        # The optimizer might detect that the condition is static (can be determined at compile time), and
+        # return just the if- or else-body, respectively. We only continue with this function if the node
+        # is still an if-node after optimization.
+        node = self.optimize(node)
+        if not isinstance(node, AstIf):
+            return node.walk(self)
+
+        cond_name = self.gen_symbol('cond_')
+        name = self.gen_symbol('c')
+
+        cond_graph, cond = node.cond.walk(self)
+        cur_cond = self.current_condition()
+        if cur_cond:
+            cond_graph.merge(Graph({cur_cond}, {(cur_cond, cond_name)}))
+
+        self.begin_condition(cond_name)
+        if_graph, if_body = node.if_body.walk(self)
+        if node.else_body:
+            else_graph, else_body = node.else_body.walk(self)
+        else:
+            else_graph, else_body = Graph.EMPTY, "None"
+        self.end_condition()
+
+        expr = "{} if {} else {}".format(if_body, cond_name, else_body)
+        graph = cond_graph
+        graph = graph.merge(Graph({cond_name}, set((v, cond_name) for v in graph.vertices), {cond_name: cond}))
+        graph = graph.merge(if_graph.add_condition(cond_name))
+        graph = graph.merge(else_graph.add_condition("not " + cond_name))
+        graph = graph.merge(Graph({name}, set((v, name) for v in graph.vertices), {name: expr}))
+        return graph, name
+
     def visit_sample(self, node: AstSample):
         dist = node.distribution
         name = self.gen_symbol('x')
         node.id = name
         graph, expr = dist.walk(self)
         graph = graph.merge(Graph({name}, set((v, name) for v in graph.vertices), {name: expr}))
+        cond = self.current_condition()
+        if cond:
+            graph = graph.merge(Graph({cond}, {(cond, name)}))
         return graph, name
 
     def visit_observe(self, node: AstObserve):
@@ -164,6 +226,9 @@ class Compiler(Walker):
         graph, expr = dist.walk(self)
         _, obs_expr = node.value.walk(self)
         graph = graph.merge(Graph({name}, set((v, name) for v in graph.vertices), {name: expr}, {name: obs_expr}))
+        cond = self.current_condition()
+        if cond:
+            graph = graph.merge(Graph({cond}, {(cond, name)}))
         return graph, name
 
     def visit_distribution(self, node: AstDistribution):

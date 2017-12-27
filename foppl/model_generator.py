@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 21. Dec 2017
-# 22. Dec 2017
+# 27. Dec 2017
 #
 import datetime
 import importlib
@@ -209,9 +209,16 @@ class Model_Generator(object):
                     result.append("{} = {}".format(v, graph.observed_values[v]))
                 else:
                     result.append("{v} = state['{v}']".format(v=v))
-                result.append("p{p_index} = dist_{v}.log_pdf({v})".format(p_index=p_index, v=v))
+                s = "p{p_index} = dist_{v}.log_pdf({v})".format(p_index=p_index, v=v)
+                if v in graph.observed_conditions:
+                    s += " if {} else 0".format(graph.observed_conditions[v])
+                result.append(s)
                 p_vars.append("p{p_index}".format(p_index=p_index))
                 p_index += 1
+
+            elif v.startswith("cond"):
+                result.append("{v} = state['{v}']".format(v=v))
+
             else:
                 result.append("{} = {}".format(v, code))
         if len(p_vars) > 0:

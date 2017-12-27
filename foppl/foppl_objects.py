@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 29. Nov 2017
-# 22. Dec 2017
+# 27. Dec 2017
 #
 class Sequence(object):
 
@@ -147,3 +147,8 @@ Symbol.AND = Symbol('and')
 Symbol.OR = Symbol('or')
 Symbol.NOT = Symbol('not')
 Symbol.XOR = Symbol('xor')
+Symbol.EQ = Symbol('=')
+Symbol.LT = Symbol('<')
+Symbol.GT = Symbol('>')
+Symbol.LE = Symbol('<=')
+Symbol.GE = Symbol('>=')

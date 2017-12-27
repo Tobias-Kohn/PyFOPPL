@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 24. Dec 2017
-# 24. Dec 2017
+# 27. Dec 2017
 #
 from .foppl_ast import *
 
@@ -12,7 +12,10 @@ class Optimizer(Walker):
         '+': lambda x, y: x + y,
         '-': lambda x, y: x - y,
         '*': lambda x, y: x * y,
-        '/': lambda x, y: x / y
+        '/': lambda x, y: x / y,
+        'and': lambda x, y: x & y,
+        'or':  lambda x, y: x | y,
+        'xor': lambda x, y: x ^ y
     }
 
     def __init__(self, compiler=None):
@@ -53,23 +56,56 @@ class Optimizer(Walker):
             return AstFunctionCall(node.function, vector)
         return node
 
+    def visit_compare(self, node: AstCompare):
+        left = node.left.walk(self)
+        right = node.right.walk(self)
+        if isinstance(left, AstValue) and isinstance(right, AstValue):
+            op = node.op
+            value_l = left.value
+            value_r = right.value
+            if op == '=':
+                return AstValue(value_l == value_r)
+            elif op == '<':
+                return AstValue(value_l < value_r)
+            elif op == '>':
+                return AstValue(value_l > value_r)
+            elif op == '<=':
+                return AstValue(value_l <= value_r)
+            elif op == '>=':
+                return AstValue(value_l >= value_r)
+        return AstCompare(node.op, left, right)
+
+    def visit_if(self, node: AstIf):
+        cond = node.cond.walk(self)
+        if_body = node.if_body.walk(self)
+        else_body = node.else_body.walk(self) if node.else_body else None
+        if isinstance(cond, AstValue) and type(cond.value) is bool:
+            if cond.value:
+                return if_body
+            elif else_body:
+                return else_body
+        return AstIf(cond, if_body, else_body)
+
     def visit_symbol(self, node: AstSymbol):
-        if self.compiler:
-            result = self.compiler.resolve_symbol(node.name)
-            if result:
-                return result
         return node
 
     def visit_unary(self, node: AstUnary):
         item = node.item.walk(self)
         if node.op == '+':
             return item
-        if isinstance(item, AstValue):
+
+        elif isinstance(item, AstValue):
             if node.op == '-':
                 return AstValue(-item.value)
+            elif node.op == 'not':
+                return AstValue(not item.value)
+
         elif isinstance(item, AstUnary):
             if item.op == '-' and node.op == '-':
                 return item.item
+            if item.op == 'not' and node.op == 'not':
+                return item.item
+
         return node
 
     def visit_vector(self, node: AstVector):
