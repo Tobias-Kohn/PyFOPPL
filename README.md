@@ -2,7 +2,10 @@ This is an implementation of a Anglican/Clojure-based
 _First Order Probabilistic Programming Language_ (FOPPL) in
 Python.
 
-##Usage
+The design of the language is due to Frank Wood, Jan-Willem 
+van de Meent, and Brooks Paige.
+
+#Usage
 
 You might have a FOPPL-model such as the following, saved as
 a file named `my_model.clj` in the parent-directory of your
@@ -29,9 +32,9 @@ The imported module exposes the following three fields:
 - `code`: the Python-code, that was created from the 
    graph and then compiled into the model-class.
 
-##Hacking
+#Hacking
 
-###Overview
+##Overview
 
 The source code is first read into clojure-like datastructures,
 such as forms and symbols. The datastructures can be found in
@@ -60,7 +63,7 @@ directly from inside Python. It basically register a new
 importer in the Python system, which looks for FOPPL-code
 and compiles it, once the FOPPL-code has been found.
 
-###Changing the model-class creation
+##Changing the model-class creation
 
 The model-generator has two major mechanisms for customization.
 
@@ -107,7 +110,7 @@ The model-generator has two major mechanisms for customization.
         return x + 34
     ```
     
-###Adding new functions and 'macros'
+##Adding new functions and 'macros'
 
 There are two possible places to define new functions or programming
 structures: as part of the *parser*, or as part of the *compiler*.
@@ -173,14 +176,11 @@ structures: as part of the *parser*, or as part of the *compiler*.
    objects in FOPPL.
     
 
-##License
+#License
 
 MIT. See [LICENSE.txt](LICENSE.txt).
 
-##Contributors
+#Contributors
 
 - Tobias Kohn
 - Bradley Graham
-- Yuan Zhou
-- Andrew W
-- Frank Wood
