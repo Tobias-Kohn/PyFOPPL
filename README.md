@@ -186,4 +186,4 @@ MIT. See [LICENSE.txt](LICENSE.txt).
 ## Contributors
 
 - Tobias Kohn
-- Bradley Graham
+- Bradley Gram-Hansen
