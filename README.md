@@ -1,5 +1,3 @@
-#Python-FOPPL
-
 This is an implementation of a Anglican/Clojure-based 
 _First Order Probabilistic Programming Language_ (FOPPL) in
 Python.
