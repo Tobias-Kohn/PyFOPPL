@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 21. Dec 2017
-# 27. Dec 2017
+# 28. Dec 2017
 #
 import datetime
 import importlib
@@ -16,14 +16,14 @@ class Model_Generator(object):
         self.interface_name = 'interface'
         self.interface_source = 'pyfo.utils.interface'
         self.imports = [
-            'import torch',
+            'import math',
             'import numpy as np',
-            'from torch.autograd import Variable',
-            'import pyfo.distributions as dist'
+            #'import torch',
+            #'from torch.autograd import Variable',
+            #'import pyfo.distributions as dist'
         ]
         self.interface_name = 'object'
         self.interface_source = ''
-        self.imports = ''
         self._output: str = None
 
     def generate_class(self) -> str:
@@ -160,6 +160,13 @@ class Model_Generator(object):
 
     def _gen_ordered_vars(self):
         return None
+
+    def _gen_cond_vars(self):
+        vars = self.graph.cond_vars
+        if len(vars) > 0:
+            return "return ['{}']".format("', '".join(vars))
+        else:
+            return "return []"
 
     def _gen_cont_vars(self):
         vars = self.graph.cont_vars

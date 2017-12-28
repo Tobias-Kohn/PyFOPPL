@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 24. Dec 2017
-# 27. Dec 2017
+# 28. Dec 2017
 #
 from .foppl_ast import *
 
@@ -87,6 +87,10 @@ class Optimizer(Walker):
         return AstIf(cond, if_body, else_body)
 
     def visit_symbol(self, node: AstSymbol):
+        if self.compiler:
+            result = self.compiler.scope.find_value(node.name)
+            if result:
+                return result
         return node
 
     def visit_unary(self, node: AstUnary):

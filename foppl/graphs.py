@@ -2,7 +2,7 @@
 # (c) 2017, Tobias Kohn
 #
 # 20. Dec 2017
-# 27. Dec 2017
+# 28. Dec 2017
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -25,6 +25,9 @@ class Graph(object):
         self.disc_vars = set(n for n in vertices
                                 if n in cond_densities
                                 if f(cond_densities[n]) in discrete_distributions)
+        self.cond_vars = set(n for n in vertices
+                                if n in cond_densities
+                                if n.startswith('cond'))
         self.EMPTY: Graph = None
 
     def __repr__(self):

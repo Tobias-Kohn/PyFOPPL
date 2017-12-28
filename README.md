@@ -7,6 +7,12 @@ The design of the FOPPL language is due to
 [Frank Wood](http://www.robots.ox.ac.uk/~fwood/), 
 Jan-Willem van de Meent, and Brooks Paige.
 
+The package takes FOPPL-code as input and creates a 
+graph-based model for it.
+
+Please note that this is a work in progress and by no means
+complete, yet.
+
 ## Usage
 
 You might have a FOPPL-model such as the following, saved as
