@@ -15,6 +15,8 @@ complete, yet.
 
 ## Usage
 
+Minimal system requirements: Python 3.4.
+
 You might have a FOPPL-model such as the following, saved as
 a file named `my_model.clj` in the parent-directory of your
 project:
