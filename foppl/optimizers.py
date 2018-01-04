@@ -7,6 +7,7 @@
 # 04. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
+from . import Options
 
 class Optimizer(Walker):
 
@@ -18,6 +19,13 @@ class Optimizer(Walker):
         'and': lambda x, y: x & y,
         'or':  lambda x, y: x | y,
         'xor': lambda x, y: x ^ y
+    }
+
+    __inverse_cmp = {
+        '>': '<=',
+        '>=': '<',
+        '<=': '>',
+        '<': '>=',
     }
 
     def __init__(self, compiler=None):
@@ -115,7 +123,15 @@ class Optimizer(Walker):
         if self.compiler:
             result = self.compiler.scope.find_value(node.name)
             if result:
-                return result
+                if type(result) in [int, float, list, str, bool]:
+                    return AstValue(result)
+                else:
+                    return result
+            result = self.compiler.scope.find_symbol(node.name)
+            if type(result) is tuple and len(result) == 2:
+                graph, value = result
+                if graph.is_empty and isinstance(value, AstValue):
+                    return value
         return node
 
     def visit_unary(self, node: AstUnary):
@@ -144,11 +160,15 @@ class Optimizer(Walker):
                 return item.item
 
         # simplify the patterns 'NOT COMPARISON', e.g. `not x < 0` to `x >= 0`
-        elif isinstance(item, AstCompare) and node.op == 'not' and item.op in ['<', '>']:
-            if item.op == '<':
-                return AstCompare('>=', item.left, item.right)
-            elif item.op == '>':
-                return AstCompare('>=', item.right, item.left)
+        elif isinstance(item, AstCompare) and node.op == 'not':
+            if Options.uniform_conditionals:
+                if item.op == '<':
+                    return AstCompare('>=', item.left, item.right)
+                elif item.op == '>':
+                    return AstCompare('>=', item.right, item.left)
+            else:
+                if item.op in self.__inverse_cmp:
+                    return AstCompare(self.__inverse_cmp[item.op], item.left, item.right)
 
         return AstUnary(node.op, item)
 

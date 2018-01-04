@@ -9,6 +9,7 @@
 from .foppl_ast import *
 from .foppl_reader import *
 from .foppl_distributions import distribution_map
+from . import Options
 
 def _register(name):
     def _name_(cls):
@@ -58,18 +59,19 @@ class ExprParser(object):
             left = self._parse(form[1])
             right = self._parse(form[2])
 
-            # We convert all comparisons (except for equality) to the pattern `X >= 0`
-            if f == Symbol.LE:
-                f = Symbol.GE
-                left, right = right, left
-
-            elif f in [Symbol.GT, Symbol.LT]:
-                if f == Symbol.GT:
+            if Options.uniform_conditionals:
+                # We convert all comparisons (except for equality) to the pattern `X >= 0`
+                if f == Symbol.LE:
+                    f = Symbol.GE
                     left, right = right, left
-                if not (isinstance(right, AstValue) and right.value == 0):
-                    left = AstBinary('-', left, right)
-                    right = AstValue(0)
-                return AstUnary('not', AstCompare(Symbol.GE, left, right))
+
+                elif f in [Symbol.GT, Symbol.LT]:
+                    if f == Symbol.GT:
+                        left, right = right, left
+                    if not (isinstance(right, AstValue) and right.value == 0):
+                        left = AstBinary('-', left, right)
+                        right = AstValue(0)
+                    return AstUnary('not', AstCompare(Symbol.GE, left, right))
 
             if not (isinstance(right, AstValue) and right.value == 0):
                 left = AstBinary('-', left, right)
@@ -239,16 +241,10 @@ class Parser(object):
         self.expr_parser = ExprParser()
         self.expr_parser.parent = self
 
-    def begin_scope(self, scope):
-        if scope:
-            scope.prev = self.current_scope
-            self.current_scope = scope
-
-    def end_scope(self):
-        if self.current_scope and self.current_scope.prev:
-            self.current_scope = self.current_scope.prev
-
     def parse(self, form: Form):
+        if form is None:
+            return AstValue(None)
+
         form_type = type(form)
 
         if form_type is Form:
