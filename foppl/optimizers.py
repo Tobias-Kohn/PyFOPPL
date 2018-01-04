@@ -20,13 +20,6 @@ class Optimizer(Walker):
         'xor': lambda x, y: x ^ y
     }
 
-    __anti_compare = {
-        '<': '>=',
-        '<=': '>',
-        '>': '<=',
-        '>=': '<'
-    }
-
     def __init__(self, compiler=None):
         self.compiler = compiler
 
@@ -45,6 +38,11 @@ class Optimizer(Walker):
             if (left.value == 0 and node.op in ['+', 'or']) or \
                (left.value == 1 and node.op in ['*']):
                 return right
+
+            if left.value == 0 and node.op == '-':
+                return AstUnary('-', right)
+
+        if isinstance(right, AstValue):
             if (right.value == 0 and node.op in ['+', '-', 'or']) or \
                (right.value == 1 and node.op in ['*', '/']):
                 return left

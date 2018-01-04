@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 03. Jan 2018, Tobias Kohn
+# 04. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -89,7 +89,7 @@ class Graph(object):
         cond = self.conditional_densities
         obs = self.observed_values
         C_ = "\n".join(["  {} -> {}".format(v, cond[v]) for v in cond])
-        O_ = "\n".join(["  {} -> {}".format(v, cond[v]) for v in obs])
+        O_ = "\n".join(["  {} -> {}".format(v, obs[v]) for v in obs])
         V = "Vertices V:\n  " + ', '.join(sorted(self.vertices))
         A = "Arcs A:\n  " + ', '.join(['({}, {})'.format(u, v) for (u, v) in self.arcs])
         C = "Conditional densities C:\n" + C_
