@@ -241,3 +241,4 @@ MIT. See [LICENSE.txt](LICENSE.txt).
 
 - Tobias Kohn
 - Bradley Gram-Hansen
+- Yuan Zhou
