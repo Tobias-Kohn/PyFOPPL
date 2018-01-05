@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 04. Jan 2018, Tobias Kohn
+# 05. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .foppl_reader import *
@@ -108,6 +108,13 @@ class ExprParser(object):
 
             elif f.name == "apply":
                 return AstFunctionCall(self._parse(form[1]), self._parse(form[2:]))
+
+            # We need special treatment for the normal-distribution as in FOPPL, we provide sigma-squared as second
+            # parameter instead of sigma itself.
+            elif f.name == "normal":
+                if len(args) >= 2:
+                    args[1] = AstSqrt(args[1])
+                return AstDistribution(distribution_map[f.name], args)
 
             elif f.name in distribution_map:
                 return AstDistribution(distribution_map[f.name], args)

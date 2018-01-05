@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 24. Dec 2017, Tobias Kohn
-# 04. Jan 2018, Tobias Kohn
+# 05. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from . import Options
@@ -118,6 +118,23 @@ class Optimizer(Walker):
             cond = cond.item
 
         return AstIf(cond, if_body, else_body)
+
+    def visit_sqrt(self, node: AstSqrt):
+        from math import sqrt
+        item = node.item.walk(self)
+
+        if isinstance(item, AstValue):
+            value = item.value
+            if type(value) in [int, float]:
+                return AstValue(sqrt(value))
+            elif type(value) is list and all([type(x) in [int, float] for x in value]):
+                return AstValue([sqrt(x) for x in value])
+
+        if isinstance(item, AstVector):
+            node = AstVector([AstSqrt(x) for x in item.items])
+            return node.walk(self)
+
+        return AstSqrt(item)
 
     def visit_symbol(self, node: AstSymbol):
         if self.compiler:

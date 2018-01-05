@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 04. Jan 2018, Tobias Kohn
+# 05. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .graphs import *
@@ -295,7 +295,20 @@ class Compiler(Walker):
             raise SyntaxError("'def' must be on the global level")
 
     def visit_distribution(self, node: AstDistribution):
-        return node.repr_with_args(self)
+        graph = Graph.EMPTY
+        args = []
+        for arg in node.args:
+            gr, expr = arg.walk(self)
+            graph = graph.merge(gr)
+            args.append(expr)
+        params = distribution_params[node.name].copy()
+        if len(params) == len(args):
+            for i in range(len(params)):
+                params[i] += '=' + args[i]
+
+            return graph, "dist.{}({})".format(node.name, ', '.join(params))
+        else:
+            raise SyntaxError("wrong number of arguments for distribution '{}'".format(node.name))
 
     def visit_functioncall(self, node: AstFunctionCall):
         func = node.function
@@ -380,6 +393,14 @@ class Compiler(Walker):
         if cond:
             graph = graph.merge(Graph({cond}, {(cond, name)}))
         return graph, name
+
+    def visit_sqrt(self, node: AstSqrt):
+        node = self.optimize(node)
+        if isinstance(node, AstSqrt):
+            graph, expr = node.item.walk(self)
+            return graph, "math.sqrt({})".format(expr)
+        else:
+            return node.walk(self)
 
     def visit_symbol(self, node: AstSymbol):
         return self.scope.find_symbol(node.name)
