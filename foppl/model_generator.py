@@ -178,14 +178,14 @@ class Model_Generator(object):
         return None
 
     def _gen_cond_vars(self):
-        vars = self.graph.cond_vars
+        vars = self.graph.cond_vars.difference(self.graph.if_vars)
         if len(vars) > 0:
             return "return ['{}']".format("', '".join(vars))
         else:
             return "return []"
 
     def _gen_cont_vars(self):
-        vars = self.graph.cont_vars
+        vars = self.graph.cont_vars.difference(self.graph.if_vars)
         if len(vars) > 0:
             return "return ['{}']".format("', '".join(vars))
         else:
