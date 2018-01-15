@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 20. Dec 2017, Tobias Kohn
-# 08. Jan 2018, Tobias Kohn
+# 15. Jan 2018, Tobias Kohn
 #
 from .foppl_distributions import continuous_distributions, discrete_distributions
 
@@ -174,6 +174,12 @@ class Graph(object):
     def not_observed_variables(self):
         V = self.vertices
         return V.difference(set(self.observed_values.keys()))
+
+    @property
+    def sampled_variables(self):
+        V = self.vertices
+        V = V.difference(set(self.observed_values.keys()))
+        return {v for v in V if self.get_code_for_variable(v).startswith("dist.")}
 
     @property
     def sorted_edges_by_parent(self):
