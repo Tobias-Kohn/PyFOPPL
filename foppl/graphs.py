@@ -131,6 +131,7 @@ class Graph(object):
         G = Graph(V, A, C, O)
         G.cont_vars = set.union(self.cont_vars, other.cont_vars)
         G.disc_vars = set.union(self.disc_vars, other.disc_vars)
+        G.cond_vars = set.union(self.cond_vars, other.cond_vars)
         G.observed_conditions = {**self.observed_conditions, **other.observed_conditions}
         G.original_names = {**self.original_names, **other.original_names}
         G.conditional_functions = {**self.conditional_functions, **other.conditional_functions}
