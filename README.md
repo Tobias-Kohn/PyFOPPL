@@ -15,7 +15,8 @@ complete, yet.
 
 ## Usage
 
-Minimal system requirements: Python 3.4.
+_Minimal system requirements: Python 3.4 (we have tested the system
+on Python 3.5 and Python 3.6)._
 
 You might have a FOPPL-model such as the following, saved as
 a file named `my_model.clj` in the parent-directory of your
@@ -41,10 +42,34 @@ The imported module exposes the following three fields:
    program.
 - `code`: the Python-code, that was created from the 
    graph and then compiled into the model-class.
+   
+### Options
+   
+The FOPPL-compiler supports some options, which must be set before
+importing any FOPPL-programs. The options can be set like this:
+```python
+from foppl import Options
+Options.uniform_conditionals = False
+
+import my_model
+
+...
+```
+Details of the available options can be found in the file
+`foppl/__init__.py`.
 
 ## Hacking
 
-### Overview
+_NB: The design of the compiler follows as closely as possible an 
+implementation in Clojure by Brooks Paige and Jan-Willem van 
+de Meent._
+
+### Overview: How the Compiler Works
+
+_The compiler takes a Clojure-like input (the
+FOPPL program), creates a graph representing the probabilistic
+structure of the program, and then transforms the graph into a
+directly usable Python model._
 
 The FOPPL source code is first read into clojure-like datastructures,
 such as forms and symbols. The datastructures can be found in
@@ -188,6 +213,32 @@ structures: as part of the *parser*, or as part of the *compiler*.
    We distinguish between functions and other symbols, since
    functions are treated differently and are not first-class
    objects in FOPPL.
+   
+### The Role of the Optimizer
+
+In order to create a finite graphical model of the given 
+FOPPL-program, we need to impose several restrictions on the 
+available structures. For instance, we do not allow or support
+recursion, and the builtin loop-structure needs an explicit
+constant number of iterations. Data vectors must all be fully
+known at compile time.
+
+In various cases, the original severe restrictions can be
+slightly relaxed if the compiler is capable of evaluating some
+parts of the program, and simplify it. Consider, for instance,
+the following example:
+```clojure
+(let [original_data [1 2 3 4]
+      data (map (fn [x] (* x x)) original_data)]
+        ; code working with data
+      )
+```
+To the naive compiler, `data` is an unknown data structure in
+this case, and it can not evaluate its length or contents. When
+the compiler, however, can perform partial evaluation on the
+code, it will resolve `data` to be `[1, 4, 9, 16]`.
+
+This partial evaluations are done by the `Optimizer`.
 
 ### Example of a Custom Function
 
