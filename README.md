@@ -62,7 +62,7 @@ Details of the available options can be found in the file
 
 _NB: The design of the compiler follows as closely as possible an 
 implementation in Clojure by Brooks Paige and Jan-Willem van 
-de Meent._
+de Meent, however, with various modifications and extensions._
 
 ### Overview: How the Compiler Works
 
