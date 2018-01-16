@@ -53,9 +53,9 @@ class Graph(object):
         Arcs:
         (x, y_cond), (y_1, y), (y_2, y), (y, z)
         Conditional densities:
-        x      -> categorial(0, 1)
+        x      -> categorical(0, 1)
         y_1    -> normal(mu = 1, sigma = 0.25)
-        y_2    -> normal(mu = 2, signa = 0.5)
+        y_2    -> normal(mu = 2, sigma = 0.5)
         y_cond -> x >= 0
         y      -> y_1 if y_cond else y_2
         z      -> normal(mu = y, sigma = 1)
