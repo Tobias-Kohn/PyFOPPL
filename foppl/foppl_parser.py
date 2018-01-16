@@ -127,6 +127,9 @@ class ExprParser(object):
         if type(f) is Form and len(form) == 1:
             return self._parse(f)
 
+        elif type(f) is Form:
+            raise SyntaxError("There might be too many parentheses here: '{}'".format(form))
+
         else:
             raise NotImplementedError(form)
 
