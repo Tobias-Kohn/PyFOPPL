@@ -281,7 +281,7 @@ class Graph(object):
 
     def get_discrete_distributions(self):
         result = []
-        for name in self.cont_vars:
+        for name in self.disc_vars:
             code = self.get_code_for_variable(name)
             if code.startswith("dist."):
                 code = code[5:]

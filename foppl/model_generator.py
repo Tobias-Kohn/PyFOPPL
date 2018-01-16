@@ -201,7 +201,7 @@ class Model_Generator(object):
             return "return []"
 
     def _gen_if_vars(self):
-        vars = [v for v in self.graph.if_vars if not v.startswith("f")]
+        vars = [v for v in self.graph.if_vars if not v.startswith("f") and not v.startswith("cond_")]
         if len(vars) > 0:
             return "return ['{}']".format("', '".join(vars))
         else:
