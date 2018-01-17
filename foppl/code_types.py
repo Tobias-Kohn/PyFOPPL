@@ -4,18 +4,33 @@
 # License: MIT (see LICENSE.txt)
 #
 # 16. Jan 2018, Tobias Kohn
-# 16. Jan 2018, Tobias Kohn
+# 17. Jan 2018, Tobias Kohn
 #
 class AnyType(object):
 
+    def __new__(cls, *args, **kwargs):
+        if cls is AnyType and hasattr(cls, '__singleton__'):
+            return cls.__singleton__
+        return super(AnyType, cls).__new__(cls)
+
     def __hash__(self):
         return hash(('$type$', self.__class__.__name__))
+
+    def __eq__(self, other):
+        if not isinstance(other, AnyType) and issubclass(other, AnyType):
+            other = other()
+        return other is self
 
     def __repr__(self):
         name = self.__class__.__name__
         if name.endswith("Type"):
             name = name[:-4]
         return "<{}>".format(name)
+
+    def accept(self, other):
+        if not isinstance(other, AnyType) and issubclass(other, AnyType):
+            other = other()
+        return isinstance(other, self.__class__)
 
     def apply_binary(self, op: str, other):
         raise TypeError("incompatible types for operation '{}': '{}' and '{}'".format(op, self, other))
@@ -32,15 +47,34 @@ class AnyType(object):
             cls2 = cls2.__base__
         return AnyType()
 
+def __instantiate__(tp):
+    if type(tp) is list:
+        return [__instantiate__(t) for t in tp]
+    elif isinstance(tp, AnyType):
+        return tp
+    elif issubclass(tp, AnyType):
+        return tp()
+    else:
+        raise TypeError("'{}' is not a valid type".format(repr(tp)))
+
+AnyType.__singleton__ = AnyType()
+
+######### BASE CLASSES #########
+
 class FunctionType(AnyType):
-    pass
+
+    def accept(self, other):
+        return self == other
+
+    def result_type(self, args: list):
+        return AnyType()
 
 class SimpleType(AnyType):
 
     def __new__(cls, *args, **kwargs):
         if hasattr(cls, '__singleton__') and isinstance(cls.__singleton__, cls):
             return cls.__singleton__
-        return super(AnyType, cls).__new__(cls, *args)
+        return super(SimpleType, cls).__new__(cls, *args)
 
     def __init__(self):
         self.__class__.__singleton__ = self
@@ -49,20 +83,18 @@ class SequenceType(AnyType):
 
     def __new__(cls, item_type, size, *args, **kwargs):
         if type(size) is not int or size < 0: size = None
-        if not isinstance(item_type, AnyType) and issubclass(item_type, AnyType):
-            item_type = item_type()
+        item_type = __instantiate__(item_type)
         field = '__{}_singletons__'.format(cls.__name__[:-4])
         if not hasattr(cls, field):
             setattr(cls, field, {})
         singletons = getattr(cls, field)
         if (item_type, size) in singletons:
             return singletons[item_type, size]
-        return super(AnyType, cls).__new__(cls, *args)
+        return super(SequenceType, cls).__new__(cls, *args)
 
     def __init__(self, item_type, size: int):
         if type(size) is not int or size < 0: size = None
-        if not isinstance(item_type, AnyType) and issubclass(item_type, AnyType):
-            item_type = item_type()
+        item_type = __instantiate__(item_type)
         field = '__{}_singletons__'.format(self.__class__.__name__[:-4])
         singletons = getattr(self.__class__, field)
         singletons[item_type, size] = self
@@ -74,6 +106,13 @@ class SequenceType(AnyType):
         if name.endswith("Type"):
             name = name[:-4]
         return "<{}[{}x{}]>".format(name, self.size if self.size else '?', self.item_type)
+
+    def accept(self, other):
+        other = __instantiate__(other)
+        if isinstance(other, self.__class__) and self.item_type.accept(other.item_type):
+            return self.size == other.size or self.size is None
+        else:
+            return False
 
     def union(self, other):
         if isinstance(other, SequenceType):
@@ -89,25 +128,44 @@ class TupleType(AnyType):
     pass
 
 
+######### SIMPLE TYPES #########
 
 class NumericType(SimpleType):
 
     def apply_binary(self, op: str, other):
         if isinstance(other, NumericType):
             return self.union(other)
-
+        else:
+            return super(NumericType, self).apply_binary(op, other)
 
 class FloatType(NumericType):
     pass
 
 class IntegerType(FloatType):
-    pass
+
+    def apply_binary(self, op: str, other):
+        if isinstance(other, StringType) and op == '*':
+            return other
+        else:
+            return super(IntegerType, self).apply_binary(op, other)
 
 class BooleanType(IntegerType):
     pass
 
 class StringType(SimpleType):
+
+    def apply_binary(self, op: str, other):
+        if isinstance(other, StringType) and op == '+':
+            return self
+        elif isinstance(other, IntegerType) and op == '*':
+            return self
+        else:
+            return super(StringType, self).apply_binary(op, other)
+
+class NullType(SimpleType):
     pass
+
+######### SEQUENCE TYPES #########
 
 class ListType(SequenceType):
 
@@ -125,16 +183,95 @@ class ListType(SequenceType):
         return ListType(item_type, len(types))
 
 
+######### DISTRIBUTION TYPE #########
+
 class DistributionType(AnyType):
-    pass
+
+    def __init__(self, name: str, args: list):
+        from .code_distributions import get_result_type
+        self.args = __instantiate__(args)
+        self.result = get_result_type(name, self.args)
+
+    def result_type(self):
+        return self.result
 
 
+######### FUNCTIONAL TYPES #########
+
+class TypedFunctionType(FunctionType):
+
+    def __init__(self, args: list, result):
+        self.arg_count = len(args)
+        self.args = __instantiate__(args)
+        self.result = __instantiate__(result)
+
+    def __eq__(self, other):
+        if other is self:
+            return True
+        elif isinstance(other, TypedFunctionType) and other.arg_count == self.arg_count and other.result == self.result:
+            return all([u == v for u, v in zip(self.args, other.args)])
+        else:
+            return False
+
+    def __repr__(self):
+        return "({}) -> {}".format(', '.join([repr(a) for a in self.args]), repr(self.result))
+
+    def result_type(self, args: list):
+        if len(args) == len(self.args) and all([v.accept(u) for u, v in zip(args, self.args)]):
+            return self.result
+        else:
+            raise TypeError("wrong number or type of arguments")
+
+
+class UntypedFunctionType(FunctionType):
+
+    def __init__(self, arg_count: int, result, varargs: bool=False):
+        self.arg_count = arg_count
+        self.result = __instantiate__(result)
+        self.varargs = varargs
+
+    def __eq__(self, other):
+        if other is self:
+            return True
+        elif isinstance(other, UntypedFunctionType) and other.arg_count == self.arg_count and other.result == self.result:
+            return True
+        else:
+            return False
+
+    def __repr__(self):
+        args = [repr(AnyType()) for _ in range(self.arg_count)]
+        return "({}) -> {}".format(', '.join(args), repr(self.result))
+
+    def accept(self, other):
+        if isinstance(other, UntypedFunctionType):
+            pass
+        elif isinstance(other, TypedFunctionType):
+            pass
+        else:
+            return False
+
+    def result_type(self, args: list):
+        if len(args) == self.arg_count:
+            return self.result
+        elif self.varargs and len(args) >= self.arg_count:
+            return self.result
+        else:
+            raise TypeError("wrong number or type of arguments")
+
+
+####################################
 
 __primitive_types = {
     float: FloatType,
     int: IntegerType,
     str: StringType
 }
+
+def apply_binary(type1: AnyType, op: str, type2: AnyType):
+    if type1:
+        return type1.apply_binary(op, type2)
+    else:
+        return AnyType()
 
 def get_code_type_for_value(value):
     t = type(value)
@@ -144,3 +281,18 @@ def get_code_type_for_value(value):
         return ListType.fromList([get_code_type_for_value(v) for v in value])
     return AnyType()
 
+####################################
+
+if __name__ == "__main__":
+    s = FloatType()
+    t = IntegerType()
+    u = ListType(FloatType, 5)
+    v = ListType(IntegerType, 5)
+    print(s, id(s))
+    print(t, id(t))
+    print(s is t)
+    print(s.accept(t))
+    print(t.accept(s))
+    print(u.accept(v))
+    print(v.accept(u))
+    print(ListType.fromList([ListType(IntegerType, 2), ListType(IntegerType, 2)]))

@@ -110,6 +110,12 @@ class Model_Generator(object):
             self._output += self._format_method(name='get_cond_functions',
                                                 code='cond_functions = {}\n'.format(self.graph.get_conditional_functions()) +
                                                      'return cond_functions')
+            self._output += self._format_method(name='get_dist_parameter_size', args='name',
+                                                code='dist_sizes = {}\n'.format(self.graph.get_distribution_sizes()) +
+                                                     'if name in dist_sizes:\n'
+                                                     '\treturn dist_sizes[name]\n'
+                                                     'else:\n'
+                                                     '\treturn None')
 
             # We go through the class and call each method that starts with '_gen_'. The methods are expected
             # to return a string with the code for a function or method to be included
