@@ -275,7 +275,9 @@ def apply_binary(type1: AnyType, op: str, type2: AnyType):
 
 def get_code_type_for_value(value):
     t = type(value)
-    if t in __primitive_types:
+    if value is None:
+        return NullType()
+    elif t in __primitive_types:
         return __primitive_types[t]()
     if type(t) is list:
         return ListType.fromList([get_code_type_for_value(v) for v in value])
