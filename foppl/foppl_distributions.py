@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 07. Jan 2018, Tobias Kohn
+# 18. Jan 2018, Tobias Kohn
 #
 discrete_distributions = {
     "Bernoulli",
@@ -50,7 +50,7 @@ distribution_params = {
     "Categorical": ["ps"],
     "Cauchy": ["mu", "gamma"],
     "Dirichlet": ["alpha"],
-    "Exponential": ["lambda"],
+    "Exponential": ["lam"],
     "LogNormal": ["mu", "sigma"],
     "Gamma": ["alpha", "beta"],
     "HalfCauchy": ["mu", "gamma"],
