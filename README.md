@@ -58,6 +58,16 @@ import my_model
 Details of the available options can be found in the file
 `foppl/__init__.py`.
 
+### Drawing the Graph
+
+If you have the modules `networkx`, `matplotlib`, and `graphviz`
+installed (the last one being optional), you can get a visual
+representation of the graph.
+```python
+model = my_model.model
+model.graph.draw_graph()
+```
+
 ## Hacking
 
 _NB: The design of the compiler follows as closely as possible an 
