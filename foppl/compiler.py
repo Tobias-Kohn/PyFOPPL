@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 21. Dec 2017, Tobias Kohn
-# 16. Jan 2018, Tobias Kohn
+# 20. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from .graphs import *
@@ -363,8 +363,9 @@ class Compiler(Walker):
             raise SyntaxError("wrong number of arguments for distribution '{}'".format(node.name))
 
     def visit_distribution_categorical(self, node: AstDistribution):
-        if len(node.args) >= 1 and isinstance(node.args[0], AstValue):
-            ps = node.args[0].value
+        args = [self.optimize(a) for a in node.args]
+        if len(args) >= 1 and isinstance(args[0], AstValue):
+            ps = args[0].value
             if type(ps) is list and all([type(i) is list for i in ps]):
                 size = len(ps), min([len(i) for i in ps])
             elif type(ps) is list and all([type(i) in [int, float] for i in ps]):

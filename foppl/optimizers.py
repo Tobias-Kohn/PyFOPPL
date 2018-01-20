@@ -4,7 +4,7 @@
 # License: MIT (see LICENSE.txt)
 #
 # 24. Dec 2017, Tobias Kohn
-# 11. Jan 2018, Tobias Kohn
+# 20. Jan 2018, Tobias Kohn
 #
 from .foppl_ast import *
 from . import Options
@@ -174,6 +174,11 @@ class Optimizer(Walker):
                 f = self.compiler.scope.find_function(function.name)
                 if f is not None:
                     function = f
+            elif isinstance(function, str):
+                f = self.compiler.scope.find_function(function)
+                if f is not None:
+                    function = f
+
             if isinstance(function, AstFunction):
                 result = self.__apply_function(function, args)
                 if isinstance(result, AstValue):
