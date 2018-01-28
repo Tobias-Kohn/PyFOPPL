@@ -1,5 +1,9 @@
 # FOPPL in Python
 
+**This repository is deprecated and has been superseded by a 
+new implementation
+[PyFOPPL-2](https://github.com/Tobias-Kohn/PyFOPPL-2).**
+
 This is an implementation of a Anglican/Clojure-based 
 _First Order Probabilistic Programming Language_ (FOPPL) in
 Python.
